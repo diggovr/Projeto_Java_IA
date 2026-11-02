@@ -3,7 +3,7 @@
 //  sw.js  |  Cache offline para as páginas e assets
 // ════════════════════════════════════════════════════════
 
-const CACHE_NAME = 'rs-escola-v2';
+const CACHE_NAME = 'rs-escola-v3';
 
 // Caminhos da API: sempre vão à rede, nunca ao cache
 const API_PREFIXOS = ['/health', '/login', '/usuarios', '/cursos', '/alunos', '/relatorio'];

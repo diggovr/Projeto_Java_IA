@@ -66,11 +66,13 @@ export FIRESTORE_EMULATOR_HOST=localhost:8080
 export GOOGLE_CLOUD_PROJECT=demo-cadastro-alunos
 export ADMIN_EMAIL=admin@escola.com
 export ADMIN_SENHA=senha123
+export APP_SECRET=uma-frase-longa-e-secreta
 export ANTHROPIC_API_KEY=sua-chave-aqui
 export PORT=8081
 ```
 
 - `ADMIN_EMAIL` e `ADMIN_SENHA` criam o primeiro usuário, que você usa para entrar. A senha precisa ter pelo menos 6 caracteres.
+- `APP_SECRET` assina os logins. Use qualquer frase longa; sem ela, os logins somem a cada reinício do servidor.
 - Se não tiver chave do Claude, apague a linha `ANTHROPIC_API_KEY`. Um valor falso não serve: o sistema funciona, mas o relatório mostra erro de conexão com o Claude.
 - No Windows PowerShell, use `$env:NOME="valor"` no lugar de `export NOME=valor`.
 
@@ -107,6 +109,10 @@ No Terminal 2, pressione `Ctrl+C`. No Terminal 1, faça o mesmo.
 | `Email ou senha inválidos` ao entrar | Confira `ADMIN_EMAIL` e `ADMIN_SENHA`. O administrador só é criado se ainda não existir. |
 | `ANTHROPIC_API_KEY não configurada` | Defina a variável no Terminal 2 e reinicie o `java -jar`. |
 | Porta em uso | Troque `PORT` por outro número, como `8082`. |
+| `401 Faça login para continuar` | A sessão expirou ou o login não foi feito. Entre de novo. |
+| `403 Apenas administradores` | Só o perfil `admin` gerencia usuários. Entre com o administrador. |
+| `429 Muitas tentativas` | Muitos erros de senha para o e-mail ou para o IP. Aguarde 15 minutos. |
+| `APP_SECRET não definida` no log | Sem essa variável, os logins se perdem a cada reinício. Defina-a. |
 | Tela não atualiza depois de uma mudança no front | No navegador, recarregue com `Ctrl+Shift+R`. Se for PWA, aumente `CACHE_NAME` em `sw.js`. |
 
 ---
@@ -127,6 +133,13 @@ gcloud firestore databases create --location=southamerica-east1
 
 ```bash
 echo -n "SUA_CHAVE" | gcloud secrets create anthropic-api-key --data-file=-
+```
+
+Guarde também o segredo que assina os logins e a senha do administrador:
+
+```bash
+echo -n "uma-frase-longa-e-secreta-diferente" | gcloud secrets create app-secret --data-file=-
+echo -n "senha-forte-do-admin" | gcloud secrets create admin-senha --data-file=-
 ```
 
 ### Passo 3 — Dar permissões à conta do Cloud Run
@@ -153,8 +166,8 @@ Na pasta `cadastro-alunos`:
 ```bash
 gcloud run deploy sistema-escolar --source . --region southamerica-east1 \
   --allow-unauthenticated --min-instances 0 --max-instances 3 \
-  --set-secrets ANTHROPIC_API_KEY=anthropic-api-key:latest \
-  --set-env-vars ADMIN_EMAIL=admin@escola.com,ADMIN_SENHA=troque-esta-senha
+  --set-secrets ANTHROPIC_API_KEY=anthropic-api-key:latest,APP_SECRET=app-secret:latest,ADMIN_SENHA=admin-senha:latest \
+  --set-env-vars ADMIN_EMAIL=admin@escola.com
 ```
 
 Ao final, o terminal mostra a URL do sistema. Abra no navegador e entre com o administrador.
@@ -191,8 +204,15 @@ Ao final, o terminal mostra a URL do sistema. Abra no navegador e entre com o ad
 
 Erros voltam como `{"detail": "mensagem"}`.
 
+**Autenticação:** todas as rotas, exceto `/health` e `/login`, exigem o cabeçalho `Authorization: Bearer <token>`. O token vem do login e vale 8 horas. Rotas de `/usuarios` exigem perfil `admin`.
+
 ### Segurança
 
 - A chave do Claude fica no servidor. O navegador nunca a vê.
 - O Claude recebe só contagens e nomes de cursos. Nenhum nome ou e-mail de aluno é enviado.
-- Senhas são guardadas como hash SHA-256. Em um sistema real, use bcrypt ou argon2.
+- Login devolve um token assinado (HMAC-SHA256). Sem o segredo `APP_SECRET`, ninguém consegue forjar um token.
+- Senhas são guardadas com PBKDF2 (210 mil iterações e sal aleatório). Nunca em texto puro.
+- Após 5 erros de senha para um e-mail, ou 50 para um IP, o login fica bloqueado por 15 minutos.
+- Os dados digitados são escapados na tela, para impedir scripts escritos em nomes ou e-mails.
+- Limitação: a proteção contra força bruta fica em memória. Com mais de uma instância no Cloud Run, cada uma conta por conta própria.
+- Limitação: sem Content-Security-Policy, porque as telas usam scripts embutidos. Mover esses scripts para arquivos separados é o próximo passo.

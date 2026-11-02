@@ -57,7 +57,7 @@ public class UsuarioDao {
             return null;
         }
         QueryDocumentSnapshot doc = docs.get(0);
-        boolean senhaConfere = Usuario.hashSenha(senha).equals(doc.getString("senhaHash"));
+        boolean senhaConfere = Usuario.senhaConfere(senha, doc.getString("senhaHash"));
         return senhaConfere ? paraUsuario(doc) : null;
     }
 

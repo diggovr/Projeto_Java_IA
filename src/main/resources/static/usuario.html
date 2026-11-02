@@ -137,13 +137,13 @@
 
       lista.innerHTML = usuarios.map(u => `
         <div class="rs-list-item">
-          <div class="rs-avatar av-user">${u.nome ? u.nome[0].toUpperCase() : 'U'}</div>
+          <div class="rs-avatar av-user">${esc(u.nome ? u.nome[0].toUpperCase() : 'U')}</div>
           <div class="rs-list-info">
-            <div class="rs-list-name">${u.nome}</div>
-            <div class="rs-list-sub">${u.email}</div>
+            <div class="rs-list-name">${esc(u.nome)}</div>
+            <div class="rs-list-sub">${esc(u.email)}</div>
           </div>
-          <span class="rs-tag">${u.perfil}</span>
-          <button class="rs-btn-icon" onclick="removerUsuario(${u.id})">🗑</button>
+          <span class="rs-tag">${esc(u.perfil)}</span>
+          <button class="rs-btn-icon" onclick="removerUsuario('${esc(u.id)}')">🗑</button>
         </div>
       `).join('');
     }

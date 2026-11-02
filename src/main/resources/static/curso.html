@@ -137,10 +137,10 @@
         <div class="rs-list-item">
           <div class="rs-avatar av-curso">📚</div>
           <div class="rs-list-info">
-            <div class="rs-list-name">${c.nome}</div>
-            <div class="rs-list-sub">${c.modalidade} · ${c.carga_horaria ? c.carga_horaria + 'h' : '—'}</div>
+            <div class="rs-list-name">${esc(c.nome)}</div>
+            <div class="rs-list-sub">${esc(c.modalidade)} · ${c.carga_horaria ? esc(c.carga_horaria) + 'h' : '—'}</div>
           </div>
-          <button class="rs-btn-icon" onclick="removerCurso(${c.id})">🗑</button>
+          <button class="rs-btn-icon" onclick="removerCurso('${esc(c.id)}')">🗑</button>
         </div>
       `).join('');
     }

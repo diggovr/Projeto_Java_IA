@@ -8,6 +8,33 @@
 
 const API_URL = '';
 
+// Rotas da API que exigem login (o token vai no cabeçalho Authorization)
+const ROTAS_PROTEGIDAS = /^\/(usuarios|cursos|alunos|relatorio)(\/|$)/;
+
+// Escapa texto antes de colocar no HTML, para evitar XSS
+function esc(valor) {
+  const mapa = { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' };
+  return String(valor ?? '').replace(/[&<>"']/g, c => mapa[c]);
+}
+
+// Envia o token em todas as rotas protegidas. Se a sessão expirou, volta ao login.
+const fetchOriginal = window.fetch.bind(window);
+window.fetch = async (url, opcoes = {}) => {
+  const caminho = String(url).replace(API_URL, '');
+  if (!ROTAS_PROTEGIDAS.test(caminho)) return fetchOriginal(url, opcoes);
+
+  const usuario = getUsuarioLogado();
+  const cabecalhos = new Headers(opcoes.headers || {});
+  if (usuario && usuario.token) cabecalhos.set('Authorization', 'Bearer ' + usuario.token);
+
+  const resposta = await fetchOriginal(url, { ...opcoes, headers: cabecalhos });
+  if (resposta.status === 401) {
+    sessionStorage.removeItem('usuario_logado');
+    window.location.href = 'login.html';
+  }
+  return resposta;
+};
+
 // ══════════════════════════════════════════════════
 //  AUTENTICAÇÃO
 // ══════════════════════════════════════════════════

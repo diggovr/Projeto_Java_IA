@@ -300,7 +300,7 @@
         return `
           <div class="curso-bar-wrap">
             <div class="curso-bar-label">
-              <span>${c.nome}</span>
+              <span>${esc(c.nome)}</span>
               <span style="color:var(--brand);font-weight:600;">${qtd} aluno${qtd !== 1 ? 's' : ''}</span>
             </div>
             <div class="curso-bar-track">

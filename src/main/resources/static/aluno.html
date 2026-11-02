@@ -158,12 +158,12 @@
 
       lista.innerHTML = alunos.map(a => `
         <div class="rs-list-item">
-          <div class="rs-avatar av-aluno">${a.nome ? a.nome[0].toUpperCase() : 'A'}</div>
+          <div class="rs-avatar av-aluno">${esc(a.nome ? a.nome[0].toUpperCase() : 'A')}</div>
           <div class="rs-list-info">
-            <div class="rs-list-name">${a.nome}</div>
-            <div class="rs-list-sub">${a.email} · ${a.curso_nome || 'Sem curso'}</div>
+            <div class="rs-list-name">${esc(a.nome)}</div>
+            <div class="rs-list-sub">${esc(a.email)} · ${esc(a.curso_nome || 'Sem curso')}</div>
           </div>
-          <button class="rs-btn-icon" onclick="removerAluno(${a.id})">🗑</button>
+          <button class="rs-btn-icon" onclick="removerAluno('${esc(a.id)}')">🗑</button>
         </div>
       `).join('');
     }

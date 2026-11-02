@@ -6,16 +6,24 @@ import br.edu.aula.dao.UsuarioDao;
 import br.edu.aula.llm.ClaudeClient;
 import br.edu.aula.llm.RelatorioService;
 import br.edu.aula.web.AlunosServlet;
+import br.edu.aula.web.AutenticacaoFilter;
 import br.edu.aula.web.CursosServlet;
 import br.edu.aula.web.HealthServlet;
+import br.edu.aula.web.LimiteTentativas;
 import br.edu.aula.web.LoginServlet;
 import br.edu.aula.web.RelatorioServlet;
+import br.edu.aula.web.Tokens;
 import br.edu.aula.web.UsuariosServlet;
+import jakarta.servlet.DispatcherType;
 import org.eclipse.jetty.ee10.servlet.DefaultServlet;
+import org.eclipse.jetty.ee10.servlet.FilterHolder;
 import org.eclipse.jetty.ee10.servlet.ServletContextHandler;
 import org.eclipse.jetty.ee10.servlet.ServletHolder;
 import org.eclipse.jetty.server.Server;
 import org.eclipse.jetty.util.resource.ResourceFactory;
+
+import java.util.EnumSet;
+import java.util.List;
 
 /**
  * Ponto de entrada da aplicação.
@@ -24,6 +32,10 @@ import org.eclipse.jetty.util.resource.ResourceFactory;
  * e serve o front-end (páginas HTML, CSS, JS e PWA) a partir de /static.
  */
 public class Main {
+
+    /** Rotas que só aceitam requisições com token de login válido. */
+    private static final List<String> ROTAS_PROTEGIDAS =
+            List.of("/usuarios/*", "/cursos/*", "/alunos/*", "/relatorio/*");
 
     public static void main(String[] args) throws Exception {
         // O Cloud Run injeta PORT; localmente o padrão é 8080
@@ -37,6 +49,9 @@ public class Main {
                 System.getenv("ANTHROPIC_API_KEY"),
                 System.getenv().getOrDefault("CLAUDE_MODEL", "claude-haiku-5-5"));
         RelatorioService relatorio = new RelatorioService(usuarios, cursos, alunos, claude);
+        Tokens tokens = new Tokens(System.getenv("APP_SECRET"));
+        LimiteTentativas limiteEmail = new LimiteTentativas(5);
+        LimiteTentativas limiteIp = new LimiteTentativas(50);
 
         criarAdminInicial(usuarios);
 
@@ -47,9 +62,15 @@ public class Main {
         contexto.setWelcomeFiles(new String[] {"index.html"});
         contexto.getMimeTypes().addMimeMapping("webmanifest", "application/manifest+json");
 
+        // Filtro de autenticação: roda antes de qualquer servlet protegido
+        for (String rota : ROTAS_PROTEGIDAS) {
+            contexto.addFilter(new FilterHolder(new AutenticacaoFilter(tokens)), rota,
+                    EnumSet.of(DispatcherType.REQUEST));
+        }
+
         // Rotas da API (mesmos caminhos que o front-end já usa)
         contexto.addServlet(new ServletHolder(new HealthServlet()), "/health");
-        contexto.addServlet(new ServletHolder(new LoginServlet(usuarios)), "/login");
+        contexto.addServlet(new ServletHolder(new LoginServlet(usuarios, tokens, limiteEmail, limiteIp)), "/login");
         contexto.addServlet(new ServletHolder(new UsuariosServlet(usuarios)), "/usuarios/*");
         contexto.addServlet(new ServletHolder(new CursosServlet(cursos)), "/cursos/*");
         contexto.addServlet(new ServletHolder(new AlunosServlet(alunos, cursos)), "/alunos/*");
