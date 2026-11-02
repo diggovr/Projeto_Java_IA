@@ -19,11 +19,17 @@ public final class Firestores {
     public static synchronized Firestore get() {
         if (db == null) {
             // Localmente, defina GOOGLE_CLOUD_PROJECT; no Cloud Run ele é detectado
+            // FIRESTORE_DATABASE escolhe um banco nomeado (ex.: "escola"); sem ela, usa o padrão
+            FirestoreOptions.Builder opcoes = FirestoreOptions.newBuilder();
             String projeto = System.getenv("GOOGLE_CLOUD_PROJECT");
-            FirestoreOptions opcoes = projeto == null
-                    ? FirestoreOptions.getDefaultInstance()
-                    : FirestoreOptions.newBuilder().setProjectId(projeto).build();
-            db = opcoes.getService();
+            if (projeto != null) {
+                opcoes.setProjectId(projeto);
+            }
+            String banco = System.getenv("FIRESTORE_DATABASE");
+            if (banco != null && !banco.isBlank()) {
+                opcoes.setDatabaseId(banco);
+            }
+            db = opcoes.build().getService();
         }
         return db;
     }
