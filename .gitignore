@@ -1,0 +1,15 @@
+# Build
+target/
+
+# Segredos: nunca commitar
+.env
+*credenciais*.json
+service-account*.json
+*-key.json
+
+# IDEs
+.idea/
+.vscode/
+*.iml
+dependency-reduced-pom.xml
+
