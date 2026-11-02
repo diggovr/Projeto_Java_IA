@@ -1,5 +1,7 @@
 package br.edu.aula.web;
 
+import br.edu.aula.dao.UsuarioDao;
+import br.edu.aula.model.Usuario;
 import jakarta.servlet.Filter;
 import jakarta.servlet.FilterChain;
 import jakarta.servlet.ServletException;
@@ -13,16 +15,19 @@ import java.util.Map;
 
 /**
  * Exige um token de login válido antes de chegar aos servlets.
- * Rotas de /usuarios exigem também o perfil "admin".
  *
- * Um filtro fica fora do servlet: nenhuma rota protegida pode esquecer a checagem.
+ * O token só diz quem é o usuário. O perfil e a existência vêm do banco a cada
+ * requisição, então um usuário excluído perde o acesso na hora, e uma troca de
+ * perfil vale sem esperar o token expirar. Rotas de /usuarios exigem "admin".
  */
 public class AutenticacaoFilter implements Filter {
 
     private final Tokens tokens;
+    private final UsuarioDao usuarios;
 
-    public AutenticacaoFilter(Tokens tokens) {
+    public AutenticacaoFilter(Tokens tokens, UsuarioDao usuarios) {
         this.tokens = tokens;
+        this.usuarios = usuarios;
     }
 
     @Override
@@ -31,14 +36,26 @@ public class AutenticacaoFilter implements Filter {
         HttpServletRequest req = (HttpServletRequest) pedido;
         HttpServletResponse resp = (HttpServletResponse) resposta;
 
-        Map<String, Object> usuario = tokens.verificar(extrairToken(req));
-        if (usuario == null) {
+        Map<String, Object> token = tokens.verificar(extrairToken(req));
+        if (token == null) {
             Json.erro(resp, 401, "Faça login para continuar.");
             return;
         }
 
+        Usuario atual;
+        try {
+            atual = usuarios.buscarPorId((String) token.get("sub"));
+        } catch (Exception e) {
+            Json.falhaInterna(resp, "autenticação", e);
+            return;
+        }
+        if (atual == null) {
+            Json.erro(resp, 401, "Sua sessão não é mais válida. Faça login novamente.");
+            return;
+        }
+
         boolean rotaDeAdmin = req.getServletPath().startsWith("/usuarios");
-        if (rotaDeAdmin && !"admin".equals(usuario.get("perfil"))) {
+        if (rotaDeAdmin && !"admin".equals(atual.perfil())) {
             Json.erro(resp, 403, "Apenas administradores podem gerenciar usuários.");
             return;
         }

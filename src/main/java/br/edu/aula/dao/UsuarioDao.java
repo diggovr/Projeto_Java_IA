@@ -45,6 +45,12 @@ public class UsuarioDao {
         return new Usuario(ref.getId(), e.nome(), e.email(), perfil);
     }
 
+    /** @return o usuário com esse id, ou null se ele não existir (ex.: foi excluído) */
+    public Usuario buscarPorId(String id) throws Exception {
+        DocumentSnapshot doc = colecao().document(id).get().get();
+        return doc.exists() ? paraUsuario(doc) : null;
+    }
+
     public void excluir(String id) throws Exception {
         colecao().document(id).delete().get();
     }

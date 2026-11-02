@@ -15,9 +15,9 @@ import java.util.Map;
 /**
  * /login: confere e-mail e senha e devolve os dados do usuário mais um token.
  *
- * Bloqueia tentativas repetidas: por e-mail (5 erros) e por IP (50 erros).
- * O limite por IP é alto de propósito, porque uma sala de aula inteira
- * pode estar atrás do mesmo endereço.
+ * Cada tentativa reserva uma vaga antes de checar a senha: por e-mail (5 por janela)
+ * e por IP (50 por janela). Login certo devolve a vaga do IP, para que uma sala
+ * inteira atrás do mesmo endereço não se bloqueie entre si.
  */
 public class LoginServlet extends HttpServlet {
 
@@ -50,7 +50,9 @@ public class LoginServlet extends HttpServlet {
         String email = dados.email().trim();
         String chaveEmail = email.toLowerCase(Locale.ROOT);
         String chaveIp = req.getRemoteAddr();
-        if (limiteEmail.bloqueado(chaveEmail) || limiteIp.bloqueado(chaveIp)) {
+
+        // Reserva as vagas antes de checar a senha: requisições simultâneas não furam o limite
+        if (!limiteEmail.reservar(chaveEmail) || !limiteIp.reservar(chaveIp)) {
             Json.erro(resp, 429, "Muitas tentativas. Aguarde 15 minutos e tente novamente.");
             return;
         }
@@ -58,13 +60,14 @@ public class LoginServlet extends HttpServlet {
         try {
             Usuario usuario = dao.autenticar(email, dados.senha());
             if (usuario == null) {
-                limiteEmail.registrarFalha(chaveEmail);
-                limiteIp.registrarFalha(chaveIp);
+                // Falha: a vaga fica reservada, contando para o limite
                 Json.erro(resp, 401, "Email ou senha inválidos.");
                 return;
             }
 
-            limiteEmail.limpar(chaveEmail);
+            // Sucesso: a vaga do IP é devolvida; a do e-mail é zerada
+            limiteIp.devolver(chaveIp);
+            limiteEmail.devolver(chaveEmail);
             Map<String, Object> corpo = new HashMap<>();
             corpo.put("id", usuario.id());
             corpo.put("nome", usuario.nome());

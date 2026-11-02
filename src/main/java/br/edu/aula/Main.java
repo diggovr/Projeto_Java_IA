@@ -64,7 +64,7 @@ public class Main {
 
         // Filtro de autenticação: roda antes de qualquer servlet protegido
         for (String rota : ROTAS_PROTEGIDAS) {
-            contexto.addFilter(new FilterHolder(new AutenticacaoFilter(tokens)), rota,
+            contexto.addFilter(new FilterHolder(new AutenticacaoFilter(tokens, usuarios)), rota,
                     EnumSet.of(DispatcherType.REQUEST));
         }
 

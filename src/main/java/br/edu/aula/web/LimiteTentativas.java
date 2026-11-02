@@ -4,9 +4,10 @@ import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 
 /**
- * Conta falhas de login por chave (e-mail ou IP) e bloqueia temporariamente
- * depois de um número máximo de erros dentro de uma janela de tempo.
+ * Limita tentativas de login por chave (e-mail ou IP) dentro de uma janela de tempo.
  *
+ * Cada tentativa reserva uma vaga de forma atômica (compute), antes de checar a senha.
+ * Assim, requisições simultâneas não conseguem passar do limite ao mesmo tempo.
  * Fica em memória: reinicia com o servidor e vale por instância.
  */
 public class LimiteTentativas {
@@ -16,36 +17,35 @@ public class LimiteTentativas {
     private final int maximo;
     private final Map<String, Registro> registros = new ConcurrentHashMap<>();
 
-    private record Registro(int falhas, long inicioMs) {
+    private record Registro(int tentativas, long inicioMs) {
     }
 
     public LimiteTentativas(int maximo) {
         this.maximo = maximo;
     }
 
-    public boolean bloqueado(String chave) {
-        Registro r = registros.get(chave);
-        if (r == null) {
-            return false;
-        }
-        if (System.currentTimeMillis() - r.inicioMs() > JANELA_MS) {
-            registros.remove(chave);
-            return false;
-        }
-        return r.falhas() >= maximo;
-    }
-
-    public void registrarFalha(String chave) {
+    /** @return true se a tentativa foi permitida (e já contada); false se o limite foi atingido */
+    public boolean reservar(String chave) {
+        boolean[] permitida = {false};
         long agora = System.currentTimeMillis();
         registros.compute(chave, (k, r) -> {
             if (r == null || agora - r.inicioMs() > JANELA_MS) {
+                permitida[0] = true;
                 return new Registro(1, agora);
             }
-            return new Registro(r.falhas() + 1, r.inicioMs());
+            if (r.tentativas() >= maximo) {
+                permitida[0] = false;
+                return r;
+            }
+            permitida[0] = true;
+            return new Registro(r.tentativas() + 1, r.inicioMs());
         });
+        return permitida[0];
     }
 
-    public void limpar(String chave) {
-        registros.remove(chave);
+    /** Devolve uma vaga, usado quando o login dá certo e a tentativa não deve contar. */
+    public void devolver(String chave) {
+        registros.computeIfPresent(chave, (k, r) ->
+                r.tentativas() <= 1 ? null : new Registro(r.tentativas() - 1, r.inicioMs()));
     }
 }
