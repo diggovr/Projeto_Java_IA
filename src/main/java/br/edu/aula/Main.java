@@ -77,8 +77,8 @@ public class Main {
         contexto.addServlet(new ServletHolder(new AlunosServlet(alunos, cursos)), "/alunos/*");
         contexto.addServlet(new ServletHolder(new RelatorioServlet(relatorio)), "/relatorio/*");
 
-        // Raiz (/) vai para index.html; "=/" casa só o caminho exato, sem afetar as páginas
-        contexto.addServlet(new ServletHolder(new InicioServlet()), "=/");
+        // Raiz (/) vai para index.html: o caminho vazio casa só a raiz exata, sem afetar as páginas
+        contexto.addServlet(new ServletHolder(new InicioServlet()), "");
 
         // Páginas e arquivos estáticos vindos de src/main/resources/static
         contexto.setBaseResource(ResourceFactory.of(servidor).newClassLoaderResource("static/"));
