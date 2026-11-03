@@ -4,8 +4,8 @@
   "description": "Sistema de gestão escolar — RS Treinamento & Consultoria",
   "start_url": "/login.html",
   "display": "standalone",
-  "background_color": "#F7F2EC",
-  "theme_color": "#8B1A2B",
+  "background_color": "#FFFFFF",
+  "theme_color": "#0E5656",
   "orientation": "portrait",
   "icons": [
     {

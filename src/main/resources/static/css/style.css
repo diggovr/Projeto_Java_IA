@@ -8,15 +8,15 @@
 
 /* ── Variáveis de cores e espaçamento ── */
 :root {
-  --brand:       #8B1A2B;   /* vermelho RS */
-  --brand-light: #F5E0E3;
-  --brand-dark:  #5C0F1A;
-  --surface:     #F7F2EC;   /* fundo creme */
-  --surface2:    #EDE5D8;
-  --border:      rgba(139,26,43,0.15);
-  --text:        #1A0A0D;
-  --text2:       #5C3A40;
-  --text3:       #9E7880;
+  --brand:       #0E5656;   /* verde petróleo */
+  --brand-light: #DDEFEF;
+  --brand-dark:  #093B3B;
+  --surface:     #FFFFFF;   /* fundo branco */
+  --surface2:    #F2F7F7;
+  --border:      rgba(14,86,86,0.18);
+  --text:        #0B1F1F;
+  --text2:       #3D5C5C;
+  --text3:       #6E8C8C;
   --white:       #FFFFFF;
   --green:       #2E7D32;
   --green-bg:    #E8F5E9;
