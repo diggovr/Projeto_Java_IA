@@ -9,6 +9,7 @@ import br.edu.aula.web.AlunosServlet;
 import br.edu.aula.web.AutenticacaoFilter;
 import br.edu.aula.web.CursosServlet;
 import br.edu.aula.web.HealthServlet;
+import br.edu.aula.web.InicioServlet;
 import br.edu.aula.web.LimiteTentativas;
 import br.edu.aula.web.LoginServlet;
 import br.edu.aula.web.RelatorioServlet;
@@ -75,6 +76,9 @@ public class Main {
         contexto.addServlet(new ServletHolder(new CursosServlet(cursos)), "/cursos/*");
         contexto.addServlet(new ServletHolder(new AlunosServlet(alunos, cursos)), "/alunos/*");
         contexto.addServlet(new ServletHolder(new RelatorioServlet(relatorio)), "/relatorio/*");
+
+        // Raiz (/) vai para index.html; "=/" casa só o caminho exato, sem afetar as páginas
+        contexto.addServlet(new ServletHolder(new InicioServlet()), "=/");
 
         // Páginas e arquivos estáticos vindos de src/main/resources/static
         contexto.setBaseResource(ResourceFactory.of(servidor).newClassLoaderResource("static/"));
