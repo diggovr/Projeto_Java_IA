@@ -53,8 +53,10 @@ public class ClaudeClient {
 
         Map<String, Object> corpo = Map.of(
                 "model", modelo,
-                "max_tokens", 600,
-                "temperature", 0.2,
+                // O Haiku 5.5 rejeita temperature fora do padrão (HTTP 400), então não enviamos.
+                // Raciocínio desligado: o relatório é um texto simples e isso economiza tokens.
+                "max_tokens", 1500,
+                "thinking", Map.of("type", "disabled"),
                 "system", promptSistema,
                 "messages", List.of(Map.of("role", "user", "content", mensagemUsuario)));
 
@@ -68,11 +70,24 @@ public class ClaudeClient {
 
         HttpResponse<String> resposta = http.send(requisicao, HttpResponse.BodyHandlers.ofString());
         if (resposta.statusCode() != 200) {
-            throw new IOException("A API do Claude respondeu com HTTP " + resposta.statusCode());
+            // O corpo do erro explica o motivo (ex.: parâmetro inválido, saldo insuficiente)
+            String detalhe = "";
+            try {
+                detalhe = ": " + mapper.readTree(resposta.body()).path("error").path("message").asText("");
+            } catch (IOException e) {
+                // corpo não é JSON: fica só o código HTTP
+            }
+            throw new IOException("A API do Claude respondeu com HTTP " + resposta.statusCode() + detalhe);
         }
 
         // A resposta traz uma lista de blocos; o texto fica em content[0].text
         JsonNode raiz = mapper.readTree(resposta.body());
-        return raiz.path("content").path(0).path("text").asText("");
+        StringBuilder texto = new StringBuilder();
+        for (JsonNode bloco : raiz.path("content")) {
+            if ("text".equals(bloco.path("type").asText())) {
+                texto.append(bloco.path("text").asText(""));
+            }
+        }
+        return texto.toString();
     }
 }

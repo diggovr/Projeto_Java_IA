@@ -125,6 +125,7 @@
 
     /* ── Diagrama de arquitetura ── */
     .arq-box {
+      white-space: pre;
       background: #0B1F1F;
       border-radius: var(--radius);
       padding: 14px 16px;
@@ -224,7 +225,7 @@
     <!-- ── Nota pedagógica ── -->
     <div class="nota-box">
       <strong>📚 Ponto pedagógico — Para o professor</strong>
-      A API Key fica em <code>backend/.env</code> — nunca no código e nunca no browser.
+      A API Key fica em <code>variável de ambiente (Secret Manager em produção)</code> — nunca no código e nunca no browser.
       O frontend chama apenas <code>GET /relatorio/narrativa</code> no próprio servidor.
       O Java monta o prompt, chama o Claude e devolve só o texto gerado.
       <br><br>
@@ -312,7 +313,7 @@
 
     // ══════════════════════════════════════════════════════
     //  CHAMADA À IA — apenas GET no próprio backend
-    //  A API Key do Claude fica em backend/.env — segura
+    //  A API Key do Claude fica em variável de ambiente (Secret Manager em produção) — segura
     //  O browser nunca vê a chave
     // ══════════════════════════════════════════════════════
     async function gerarNarrativa() {
